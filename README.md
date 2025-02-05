@@ -31,3 +31,6 @@ The backend allows CORS requests from http://localhost:5173 (default frontend po
 
 
 Update CORS settings in server/index.js if needed
+
+
+Deployment Link - https://staging.dj8uiibthvivs.amplifyapp.com/
