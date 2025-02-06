@@ -10,7 +10,7 @@ const server = http.createServer(app);
 
 const io = new Server(server, {
   cors: {
-    origin: "http://localhost:3000", // Change this to your frontend deployment URL
+    origin: "http://localhost:3000",
     methods: ["GET", "POST"],
   },
 });
@@ -31,7 +31,7 @@ io.on("connection", (socket) => {
     if (chatHistory[room]) {
       socket.emit("chat_history", chatHistory[room]);
     } else {
-      chatHistory[room] = []; // Initialize storage if not present
+      chatHistory[room] = []; 
     }
   });
 
@@ -47,10 +47,10 @@ io.on("connection", (socket) => {
     // Store the message in local in-memory storage
     chatHistory[data.room].push(messageData);
 
-    // 🔥 **Fix: Send the same message back to the sender**
+    
     socket.emit("receive_message", messageData);
 
-    // 🔥 **Fix: Broadcast the message to other users in the room**
+    
     socket.to(data.room).emit("receive_message", messageData);
   });
 
