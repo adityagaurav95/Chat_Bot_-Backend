@@ -3,47 +3,64 @@ const app = express();
 const http = require("http");
 const cors = require("cors");
 const { Server } = require("socket.io");
+
 app.use(cors());
 
 const server = http.createServer(app);
 
 const io = new Server(server, {
   cors: {
-    origin: "http://localhost:3000",
+    origin: "http://localhost:3000", // Change this to your frontend deployment URL
     methods: ["GET", "POST"],
   },
 });
 
-io.on("connection", (socket) => {
-  console.log('User Connected: ${socket.id}');
+// In-memory storage for chat messages (Replace with database if needed)
+const chatHistory = {};
 
-  socket.on("join_room", (data) => {
-    socket.join(data);
-    console.log('User with ID: ${socket.id} joined room: ${data}');
+// Handle WebSocket connections
+io.on("connection", (socket) => {
+  console.log(`User Connected: ${socket.id}`);
+
+  // Handle joining a room
+  socket.on("join_room", (room) => {
+    socket.join(room);
+    console.log(`User with ID: ${socket.id} joined room: ${room}`);
+
+    // Send past messages to the user
+    if (chatHistory[room]) {
+      socket.emit("chat_history", chatHistory[room]);
+    } else {
+      chatHistory[room] = []; // Initialize storage if not present
+    }
   });
 
-//   socket.on("send_message", (data) => {
-//     socket.to(data.room).emit("receive_message", data);
-//   });
-socket.on("send_message", (data) => {
-    // Broadcast the original message to everyone in the room
-    // io.to(data.room).emit("receive_message", data);
-
-    // Create a system response
-    const systemMessage = {
-        room: data.room,
-        sender: "System",
-        message:data.message,
+  // Handle sending messages
+  socket.on("send_message", (data) => {
+    const messageData = {
+      room: data.room,
+      sender: data.sender || "User",
+      message: data.message,
+      timestamp: new Date().toISOString(),
     };
 
-    // Send the system message ONLY to the sender
-    socket.emit("receive_message", systemMessage);
-});
+    // Store the message in local in-memory storage
+    chatHistory[data.room].push(messageData);
+
+    // 🔥 **Fix: Send the same message back to the sender**
+    socket.emit("receive_message", messageData);
+
+    // 🔥 **Fix: Broadcast the message to other users in the room**
+    socket.to(data.room).emit("receive_message", messageData);
+  });
+
+  // Handle disconnection
   socket.on("disconnect", () => {
-    console.log("User Disconnected", socket.id);
+    console.log(`User Disconnected: ${socket.id}`);
   });
 });
 
+// Start the server
 server.listen(3001, () => {
-  console.log("SERVER RUNNING");
+  console.log("SERVER RUNNING on port 3001");
 });
